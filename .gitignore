@@ -17,13 +17,14 @@ env/
 .vscode/
 .idea/
 
-# Data
+# Data - HuggingFace cache (exclude content)
 data/huggingface/
+
+# Audio files (exclude by default, but we want to track specific ones)
 *.wav
-*.mp3
 *.flac
 *.ogg
-*.m4a
+# Keep mp3 files in data/prompts
 
 # Docker
 *.log
