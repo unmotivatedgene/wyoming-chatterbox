@@ -18,9 +18,12 @@ env/
 .idea/
 
 # Data
-data/
+data/huggingface/
 *.wav
 *.mp3
+*.flac
+*.ogg
+*.m4a
 
 # Docker
 *.log
