@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+# Get directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Activate virtual environment if it exists
+if [ -d "$PROJECT_DIR/venv" ]; then
+    source "$PROJECT_DIR/venv/bin/activate"
+fi
+
+# Default values
+VOICE="default"
+DEVICE="cuda"
+URI="tcp://0.0.0.0:10200"
+DATA_DIR="/data"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --voice)
+            VOICE="$2"
+            shift 2
+            ;;
+        --device)
+            DEVICE="$2"
+            shift 2
+            ;;
+        --uri)
+            URI="$2"
+            shift 2
+            ;;
+        --data-dir)
+            DATA_DIR="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Run the server
+exec python -m wyoming_chatterbox \
+    --voice "$VOICE" \
+    --device "$DEVICE" \
+    --uri "$URI" \
+    --data-dir "$DATA_DIR" \
+    "$@"
