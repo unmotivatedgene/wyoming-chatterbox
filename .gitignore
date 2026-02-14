@@ -28,3 +28,6 @@ data/huggingface/
 
 # Docker
 *.log
+
+# Environment
+.env
