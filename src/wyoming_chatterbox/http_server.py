@@ -316,7 +316,7 @@ class ChatterboxHTTPServer:
         return web.json_response(info)
 
     async def handle_tts(self, request: web.Request) -> web.Response:
-        """Synthesize speech via HTTP."""
+        """Synthesize speech via HTTP with streaming response."""
         try:
             data = await request.json()
         except Exception:
@@ -352,16 +352,41 @@ class ChatterboxHTTPServer:
         sample_rate = handler_module._MODEL.sr
         wav = (np.clip(wav, -1.0, 1.0) * 32767).astype(np.int16)
 
-        buffer = io.BytesIO()
-        with wave.open(buffer, "wb") as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)
-            wav_file.setframerate(sample_rate)
-            wav_file.writeframes(wav.tobytes())
+        # Stream audio in chunks using chunked transfer encoding
+        async def stream_audio():
+            # Write WAV header first
+            import struct
+            
+            # RIFF header
+            data_size = len(wav.tobytes())
+            wav_size = 36 + data_size
+            
+            yield b'RIFF'
+            yield struct.pack('<I', wav_size)
+            yield b'WAVE'
+            
+            # fmt chunk
+            yield b'fmt '
+            yield struct.pack('<I', 16)  # chunk size
+            yield struct.pack('<H', 1)   # audio format (PCM)
+            yield struct.pack('<H', 1)   # channels (mono)
+            yield struct.pack('<I', sample_rate)  # sample rate
+            yield struct.pack('<I', sample_rate * 2)  # byte rate
+            yield struct.pack('<H', 2)   # block align
+            yield struct.pack('<H', 16)  # bits per sample
+            
+            # data chunk
+            yield b'data'
+            yield struct.pack('<I', data_size)
+            
+            # Stream audio data in chunks
+            chunk_size = 8192
+            audio_bytes = wav.tobytes()
+            for i in range(0, len(audio_bytes), chunk_size):
+                yield audio_bytes[i:i + chunk_size]
 
-        buffer.seek(0)
         return web.Response(
-            body=buffer.read(),
+            body=stream_audio(),
             content_type="audio/wav",
             headers={"Content-Disposition": "attachment; filename=speech.wav"},
         )
